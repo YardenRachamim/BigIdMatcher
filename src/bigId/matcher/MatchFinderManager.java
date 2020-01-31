@@ -1,4 +1,4 @@
-package big.id.matcher;
+package bigId.matcher;
 
 import java.io.*;
 import java.net.HttpURLConnection;

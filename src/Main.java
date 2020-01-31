@@ -1,4 +1,4 @@
-import big.id.matcher.MatchFinderManager;
+import bigId.matcher.MatchFinderManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;

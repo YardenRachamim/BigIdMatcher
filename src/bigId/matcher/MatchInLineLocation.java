@@ -1,4 +1,4 @@
-package big.id.matcher;
+package bigId.matcher;
 
 /***
  * This class represent a Single match data.

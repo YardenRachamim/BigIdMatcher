@@ -1,4 +1,4 @@
-package big.id.matcher;
+package bigId.matcher;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
