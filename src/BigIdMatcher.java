@@ -9,7 +9,7 @@ import java.util.Set;
 /***
  * Demo run of big.id.matcher
  */
-public class Main {
+public class BigIdMatcher {
     //region main arguments
     private static String urlToRead = "http://norvig.com/big.txt";
     private static String textToFindFilePath = "50 most common English first names.txt";
