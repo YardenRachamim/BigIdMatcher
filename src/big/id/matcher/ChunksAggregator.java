@@ -3,10 +3,7 @@ package big.id.matcher;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 
 /***
@@ -17,7 +14,7 @@ import java.util.concurrent.BlockingQueue;
 class ChunksAggregator implements Runnable{
     //region Fields
     private final BlockingQueue<Map<String, List<MatchInLineLocation>>> fMatchingPairsToAggregate;
-    private Map<String, List<MatchInLineLocation>> fAllPairs;
+    private Map<String, TreeSet<MatchInLineLocation>> fAllPairs;
     private String fOutputFilePath;
     //endregion Fields
 
@@ -64,7 +61,7 @@ class ChunksAggregator implements Runnable{
     }
 
     private void accumulateSinglePair(String key, List<MatchInLineLocation> value) {
-        List<MatchInLineLocation> listToModify = fAllPairs.getOrDefault(key, new ArrayList<>());
+        TreeSet<MatchInLineLocation> listToModify = fAllPairs.getOrDefault(key, new TreeSet<>());
 
         listToModify.addAll(value);
         fAllPairs.put(key, listToModify);
@@ -85,9 +82,9 @@ class ChunksAggregator implements Runnable{
     private String getResults() {
         StringBuilder output = new StringBuilder();
 
-        for(Map.Entry<String, List<MatchInLineLocation>> singlePair : fAllPairs.entrySet()){
+        for(Map.Entry<String, TreeSet<MatchInLineLocation>> singlePair : fAllPairs.entrySet()){
             String key = singlePair.getKey();
-            List<MatchInLineLocation> value = singlePair.getValue();
+            TreeSet<MatchInLineLocation> value = singlePair.getValue();
 
             output.append(key).append(" --> ").append("[");
 

@@ -47,6 +47,7 @@ public class MatchFinderManager {
     private void initializeMatchSearcherExecutor() {
         int numOfCores = Runtime.getRuntime().availableProcessors() - 1;  // -1 because of the Aggregator thread
 
+        numOfCores = Math.max(numOfCores, 1);
         fMatchSearcherExecutor = Executors.newFixedThreadPool(numOfCores);
     }
     //endregion Constructor
