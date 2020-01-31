@@ -14,7 +14,7 @@ import java.util.concurrent.BlockingQueue;
 class ChunksAggregator implements Runnable{
     //region Fields
     private final BlockingQueue<Map<String, List<MatchInLineLocation>>> fMatchingPairsToAggregate;
-    private Map<String, TreeSet<MatchInLineLocation>> fAllPairs;
+    private Map<String, SortedSet<MatchInLineLocation>> fAllPairs;
     private String fOutputFilePath;
     //endregion Fields
 
@@ -34,6 +34,12 @@ class ChunksAggregator implements Runnable{
     }
 
     //region Aggregation action
+    /***
+     * While there are more producers, the aggregator is waiting for more input to come.
+     * when a input is entering the queue this method will start the process of accumulate
+     * all the pairs to a single pair mapping by keeping the Set of Match data sorted
+     * It will stop waiting to the producers when getting the poison pill.
+     */
     private void aggregateAllPairs() {
         boolean isThereMoreProducers = true;
         while(isThereMoreProducers) {
@@ -47,10 +53,17 @@ class ChunksAggregator implements Runnable{
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                System.err.println(e.getMessage());
+                System.exit(1);
             }
         }
     }
 
+    /***
+     * This method iterate over a lines chunk and accumulate it to the final pair mapping
+     * doing so by keeping the match data sorted
+     * @param singlePairChunk single mapping between text to find and a list of matching data
+     */
     private void accumulatePairsChunk(Map<String, List<MatchInLineLocation>> singlePairChunk) {
         for (Map.Entry<String, List<MatchInLineLocation>> singlePair : singlePairChunk.entrySet()) {
             String key = singlePair.getKey();
@@ -60,8 +73,15 @@ class ChunksAggregator implements Runnable{
         }
     }
 
+    /***
+     * This method perform the actual accumulation between tha pairs of the text to find that
+     * already known to the ChunkAggregator and the pairs that are in the current chunk
+     * it doing so while maintaining the match data sorted
+     * @param key String that we find a match to
+     * @param value list of all matches to that string in the current chunk
+     */
     private void accumulateSinglePair(String key, List<MatchInLineLocation> value) {
-        TreeSet<MatchInLineLocation> listToModify = fAllPairs.getOrDefault(key, new TreeSet<>());
+        SortedSet<MatchInLineLocation> listToModify = fAllPairs.getOrDefault(key, new TreeSet<>());
 
         listToModify.addAll(value);
         fAllPairs.put(key, listToModify);
@@ -69,22 +89,17 @@ class ChunksAggregator implements Runnable{
     //endregion Aggregation action
 
     //region Aggregation results
-    private void writeResults() {
-        try {
-            String results = getResults();
-            writeResultsToStdIn(results);
-            writeResultsToOutputFile(results);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+    /***
+     * This class takes all the pairs after aggregation and formatting it
+     * to a specific string result
+     * @return String of formatted  results
+     */
     private String getResults() {
         StringBuilder output = new StringBuilder();
 
-        for(Map.Entry<String, TreeSet<MatchInLineLocation>> singlePair : fAllPairs.entrySet()){
+        for(Map.Entry<String, SortedSet<MatchInLineLocation>> singlePair : fAllPairs.entrySet()){
             String key = singlePair.getKey();
-            TreeSet<MatchInLineLocation> value = singlePair.getValue();
+            SortedSet<MatchInLineLocation> value = singlePair.getValue();
 
             output.append(key).append(" --> ").append("[");
 
@@ -97,6 +112,20 @@ class ChunksAggregator implements Runnable{
         }
 
         return output.toString();
+    }
+
+    /***
+     * This method responsible of writing the final results of the Matches
+     * once to the StdIn and second to the give File output
+     */
+    private void writeResults() {
+        try {
+            String results = getResults();
+            writeResultsToStdIn(results);
+            writeResultsToOutputFile(results);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void writeResultsToStdIn(String results) {

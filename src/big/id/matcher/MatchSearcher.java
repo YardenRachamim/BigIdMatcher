@@ -34,6 +34,11 @@ class MatchSearcher implements Runnable{
         searchForMatches();
     }
 
+    /***
+     * Search the pattern regex text for a given chunk (1000 lines)
+     * create the relevant MatchInLineLocation
+     * and mapping between the matching text and MatchInLineLocation that correspond to him.
+     */
     private void searchForMatches() {
         Map<String, List<MatchInLineLocation>> matchingPairs = new HashMap<>();
         long lineFirstCharOffset = 0;
@@ -50,7 +55,8 @@ class MatchSearcher implements Runnable{
     }
 
     /***
-     * This method search matches in a single line and accumulate it to matchingPairs
+     * This method search matches in a single line
+     * and  mapping between the matching text and MatchInLineLocation that correspond to him.
      * @param matchingPairs Match mapping between String and match data
      * @param line the line to search in
      * @param lineFirstCharOffset the line relative offset comparing to the all text
@@ -71,7 +77,8 @@ class MatchSearcher implements Runnable{
     }
 
     /***
-     * This method accumulate single match into the given matchingPairs map
+     * This method appending specific single match to all
+     * the match that corresponding to text that we looking for
      * @param key the text we looking for
      * @param matchingPairs Match mapping between String and match data
      * @param matchInLineLocation Match data

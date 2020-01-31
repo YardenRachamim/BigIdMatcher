@@ -7,11 +7,11 @@ class MatchInLineLocation implements Comparable<MatchInLineLocation>{
     private long fLineOffset;
     private long fCharOffset;
 
-    long getLineOffset() {
+    private long getLineOffset() {
         return fLineOffset;
     }
 
-    long getCharOffset() {
+    private long getCharOffset() {
         return fCharOffset;
     }
 
@@ -20,12 +20,20 @@ class MatchInLineLocation implements Comparable<MatchInLineLocation>{
         fCharOffset = charOffSet;
     }
 
+    @Override
     public String toString(){
         String inLineLocation = String.format("[lineOffset=%d, charOffset=%d]", fLineOffset, fCharOffset);
 
         return inLineLocation;
     }
 
+    /***
+     * Compare between 2 MatchInLineLocation.
+     * First it compare the line off set and in case of equality
+     * it will compare also the char offset
+     * @param other MatchInLineLocation to compare to
+     * @return int 1 - current is bigger, -1 - other is bigger, 0 - equal
+     */
     @Override
     public int compareTo(MatchInLineLocation other) {
         Long currentLineOffset = fLineOffset;

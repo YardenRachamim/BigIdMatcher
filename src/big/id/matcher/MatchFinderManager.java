@@ -59,6 +59,10 @@ public class MatchFinderManager {
     /***
      * This method responsible to commit all the action that necessary
      * in order to make this class work correctly
+     * First initializing Aggregator thread of type ChunksAggregator
+     * Second open a http connection and read the input 1000 lines at a time
+     * for each chunk of lines create a task of type MatchSearcher
+     * and wait all the tasks to end (Including the aggregation task)
      */
     private void searchAndAggregate() {
         try {
@@ -68,17 +72,18 @@ public class MatchFinderManager {
             joinAllSearchingTasks();
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
+            System.err.println(e.getMessage());
+            System.exit(1);
         } finally {
             terminateAggregator();
             disconnectFromUrlConnection();
         }
-
-        System.out.println("Done!! ");
     }
 
     //region MatchSearching Utils
     /***
-     * Initialize all task of type MatchSearcher
+     * Read chunks of data from the HTTP connection (1000 lines)
+     * and create new MatchSearcher task
      * @throws IOException in case of failure in getting the url InputStream
      */
     private void startAllSearchingTasks() throws IOException {
@@ -109,8 +114,8 @@ public class MatchFinderManager {
     }
 
     /***
-     * Wait till all MatchSearcher will terminate.
-     * @throws InterruptedException In case of some operating system or client interrupt
+     * Wait till all MatchSearcher tasks will terminate.
+     * @throws InterruptedException In case of operating-system or client interrupt
      */
     private void joinAllSearchingTasks() throws InterruptedException {
         fMatchSearcherExecutor.shutdown();
@@ -119,6 +124,7 @@ public class MatchFinderManager {
 
     /***
      * Create single MatchSearcher task
+     * and send an execution task to the Executor
      * @param textChunk All lines to search in
      * @param currentLineOffset Relative line offset of all input text
      */
@@ -133,12 +139,20 @@ public class MatchFinderManager {
     //endregion MatchSearching Utils
 
     //region Aggregator Utils
+
+    /***
+     * Initialization of the ChunksAggregator thread
+     */
     private void initializeAggregator() {
         fAggregator = new Thread(new ChunksAggregator(fMatchingPairsToAggregate, fOutputFilePath));
 
         fAggregator.start();
     }
 
+    /***
+     * This method responsible on inserting a poison pill to the Blocking queue.
+     * by doing so it announced to the ChunksAggregator consumer that there are no more producers
+     */
     private void insertPoisonPillToAggregator() {
         HashMap<String, List<MatchInLineLocation>> poisonPill =  new HashMap<>();
 
@@ -146,10 +160,20 @@ public class MatchFinderManager {
         fMatchingPairsToAggregate.add(poisonPill);
     }
 
+    /***
+     * Wait till ChungAggregator producer thread will finnish is task
+     * e.g. wait for the poison pill to be consumed by him
+     * @throws InterruptedException In case of operating-system or client interrupt
+     */
     private void joinAggregator() throws InterruptedException {
         fAggregator.join();
     }
 
+    /***
+     * Define the order of task that will lead to the ChungAggregator termination
+     * first insert poison pill to the blocking queue
+     * Second wait till ChungAggregator will consume it
+     */
     private void terminateAggregator() {
         insertPoisonPillToAggregator();
 
@@ -162,6 +186,11 @@ public class MatchFinderManager {
     //endregion Aggregator Utils
 
     //region HttpUrlConnection utils
+
+    /***
+     * Define the params of the http connection, and perform connection.
+     * @throws IOException in case of failure when setting the params or in the connection opening
+     */
     private void openUrlConnection() throws IOException {
         URL source = new URL(fTextToReadUrl);
         fUrlConnection = (HttpURLConnection) source.openConnection();
@@ -169,12 +198,22 @@ public class MatchFinderManager {
         fUrlConnection.connect();
     }
 
+    /***
+     * Set the http request params using the constant params:
+     * REQUEST_METHOD, CONNECTION_TIMEOUT, READ_TIMEOUT
+     * @throws IOException in case of failure when setting the params
+     */
     private void setConnectionParams() throws IOException {
         fUrlConnection.setRequestMethod(REQUEST_METHOD);
         fUrlConnection.setConnectTimeout(CONNECTION_TIMEOUT);
         fUrlConnection.setReadTimeout(READ_TIMEOUT);
     }
 
+    /***
+     * Get the actual input stream of the http connection
+     * @return InputStream og the fUrlConnection connection
+     * @throws IOException in case of failure on getting the input stream
+     */
     private InputStream getConnectionInputStream() throws IOException {
         InputStream inputStream = fUrlConnection.getInputStream();
 
@@ -185,6 +224,9 @@ public class MatchFinderManager {
         return inputStream;
     }
 
+    /***
+     * Terminate the http connection when all task are done, or in case of a failure
+     */
     private void disconnectFromUrlConnection() {
         fUrlConnection.disconnect();
     }
